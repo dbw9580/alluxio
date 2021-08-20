@@ -23,6 +23,7 @@ import alluxio.util.ConfigurationUtils;
 import alluxio.util.network.NetworkAddressUtils;
 
 import com.codahale.metrics.CachedGauge;
+import com.codahale.metrics.Clock;
 import com.codahale.metrics.Counter;
 import com.codahale.metrics.Gauge;
 import com.codahale.metrics.Meter;
@@ -847,13 +848,14 @@ public final class MetricsSystem {
   public static class MultiTimerContext implements AutoCloseable {
     private final Timer[] mTimers;
     private final long mStartTime;
+    private static final Clock CLOCK = Clock.defaultClock();
 
     /**
      * @param timers timers associated with this context
      */
     public MultiTimerContext(Timer... timers) {
       mTimers = timers;
-      mStartTime = System.nanoTime();
+      mStartTime = CLOCK.getTick();
     }
 
     /**
@@ -863,7 +865,7 @@ public final class MetricsSystem {
      * @return the elapsed time in nanoseconds
      */
     public long stop() {
-      final long elapsed = System.nanoTime() - mStartTime;
+      final long elapsed = CLOCK.getTick() - mStartTime;
       for (Timer timer : mTimers) {
         timer.update(elapsed, TimeUnit.NANOSECONDS);
       }
