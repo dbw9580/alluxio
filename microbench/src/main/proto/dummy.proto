@@ -1,0 +1,25 @@
+/*
+ * Dummy gRPC services for benchmarks.
+ */
+
+syntax = "proto2";
+
+option java_multiple_files = true;
+option java_package = "alluxio.microbench.grpc_generated";
+option java_outer_classname = "DummyProto";
+
+
+package alluxio.microbench.grpc;
+
+message GetCounterRequest {}
+
+message IncrementCounterRequest {}
+
+message CounterResponse {
+  required int64 count = 1;
+}
+
+service CounterService {
+  rpc GetCounter(GetCounterRequest) returns (CounterResponse);
+  rpc Increment(IncrementCounterRequest) returns (CounterResponse);
+}
