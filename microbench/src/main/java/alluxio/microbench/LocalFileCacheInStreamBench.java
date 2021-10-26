@@ -1,7 +1,7 @@
 /*
- * The Alluxio Open Foundation licenses this work under the Apache License, version 2.0 (the
- * "License"). You may not use this work except in compliance with the License, which is available
- * at www.apache.org/licenses/LICENSE-2.0
+ * The Alluxio Open Foundation licenses this work under the Apache License, version 2.0
+ * (the "License"). You may not use this work except in compliance with the License, which is
+ * available at www.apache.org/licenses/LICENSE-2.0
  *
  * This software is distributed on an "AS IS" basis, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
  * either express or implied, as more fully set forth in the License.
@@ -12,6 +12,7 @@
 package alluxio.microbench;
 
 import alluxio.Constants;
+import alluxio.annotation.SuppressFBWarnings;
 import alluxio.client.file.URIStatus;
 import alluxio.client.file.cache.CacheManager;
 import alluxio.client.file.cache.CacheManager.Factory;
@@ -56,6 +57,7 @@ public class LocalFileCacheInStreamBench {
   private static final byte[] PAGE2 = BufferUtils.getIncreasingByteArray(255, PAGE_SIZE_BYTES);
 
   @State(Scope.Benchmark)
+  @SuppressFBWarnings("URF_UNREAD_FIELD")
   public static class BenchState {
     CacheManager mCacheManager;
     private InstancedConfiguration mConf =
@@ -67,7 +69,7 @@ public class LocalFileCacheInStreamBench {
     LocalCacheFileInStream mStream;
     private byte[] mBuf = new byte[PAGE_SIZE_BYTES];
     private FileInStreamOpener mAlluxioFileOpener;
-    Random rand = new Random();
+    Random mRand = new Random();
 
     public BenchState() {
       mConf.set(PropertyKey.USER_CLIENT_CACHE_PAGE_SIZE, PAGE_SIZE_BYTES);
@@ -120,10 +122,9 @@ public class LocalFileCacheInStreamBench {
   public void readInternalBench(BenchState state) {
     byte[] buf = new byte[PAGE_SIZE_BYTES];
     try {
-      state.mStream.positionedRead(state.rand.nextInt(100000000), buf, 0, PAGE_SIZE_BYTES);
+      state.mStream.positionedRead(state.mRand.nextInt(100000000), buf, 0, PAGE_SIZE_BYTES);
     } catch (IOException e) {
       e.printStackTrace();
     }
   }
-
 }

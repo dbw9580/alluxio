@@ -13,6 +13,9 @@
 <FindBugsFilter>
   <Match>
     <!-- Skip generated source files -->
-    <Class name="~.*jmh_generated.*"/>
+    <Or>
+      <Class name="~.*jmh_generated.*"/>
+      <Package name="~.*grpc_generated.*" />
+    </Or>
   </Match>
 </FindBugsFilter>
