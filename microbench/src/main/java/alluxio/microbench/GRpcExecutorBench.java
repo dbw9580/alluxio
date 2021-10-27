@@ -95,6 +95,18 @@ public class GRpcExecutorBench {
     return threadState.mClient.getCounter();
   }
 
+  /**
+   * A baseline that is the upper bound.
+   * This executes the blocking operation on the client thread directly, without going through
+   * the RPC infrastructure.
+   */
+  @Benchmark
+  @Threads(64)
+  public long upperBoundBaseline(BenchState benchState, ThreadState threadState) throws Exception {
+    benchState.mFjpManagedBlocker.run();
+    return 1;
+  }
+
   @State(Scope.Thread)
   public static class ThreadState {
     private CounterClient mClient;
@@ -115,12 +127,12 @@ public class GRpcExecutorBench {
     /**
      * Number of threads in the RPC executor pool.
      */
-    @Param({ "2", "4", "8", "16" })
+    @Param({ "4", "8", "16", "32", "64" })
     public int mNumCoreThreads;
     /**
      * Max number of threads allowed in the pool.
      */
-    @Param({ "EQUAL", "MULTIPLY_2X", "CONSTANT_500" })
+    @Param({ "EQUAL" })
     public MaxThreadsStrategy mMaxThreadsStrategy;
     /**
      * How long the dummy RPC service should block, in milliseconds.
@@ -130,6 +142,7 @@ public class GRpcExecutorBench {
 
     private ExecutorService mExecutor;
     private GrpcServer mServer;
+    private Runnable mFjpManagedBlocker;
 
     private int getMaxThreads(MaxThreadsStrategy strategy) {
       switch (strategy) {
@@ -150,15 +163,15 @@ public class GRpcExecutorBench {
           mNumCoreThreads,
           ServerConfiguration.getInt(PropertyKey.MASTER_RPC_EXECUTOR_PARALLELISM));
       int maxThreads = getMaxThreads(mMaxThreadsStrategy);
-      Runnable blocker = () -> {
+
+      mFjpManagedBlocker = new FjpManagedBlocker(() -> {
         try {
           Thread.sleep(mBlockTimeMs);
         } catch (InterruptedException e) {
           Thread.currentThread().interrupt();
           throw new RuntimeException("Interrupted when sleeping");
         }
-      };
-      Runnable fjpManagedBlocker = new FjpManagedBlocker(blocker);
+      });
 
       switch (mExecutorFlavor) {
         case FJP:
@@ -167,7 +180,8 @@ public class GRpcExecutorBench {
               ThreadFactoryUtils.buildFjp("benchmark-rpc-pool-thread-%d", true), null, true,
               mNumCoreThreads, // #core threads
               maxThreads,      // #max threads
-              1,               // #min threads
+              ServerConfiguration.getInt(
+                  PropertyKey.MASTER_RPC_EXECUTOR_MIN_RUNNABLE), // #min threads
               null,
               ServerConfiguration.getMs(PropertyKey.MASTER_RPC_EXECUTOR_KEEPALIVE),
               TimeUnit.MILLISECONDS);
@@ -178,6 +192,9 @@ public class GRpcExecutorBench {
               maxThreads,      // #max threads
               0L,              // keepalive time
               TimeUnit.MILLISECONDS,
+              //FIXME(bowen): TPE only spawns new threads when the work queue is full.
+              // It will never have threads more than corePoolSize, if the work queue is unbounded.
+              // See StackOverflow #19528304.
               new LinkedBlockingQueue<>(),
               ThreadFactoryUtils.build("benchmark-rpc-pool-thread-%d", true));
           break;
@@ -194,7 +211,7 @@ public class GRpcExecutorBench {
           .executor(mExecutor)
           .addService(
               ServiceType.UNKNOWN_SERVICE,
-              new GrpcService(new CounterServiceHandler(fjpManagedBlocker)));
+              new GrpcService(new CounterServiceHandler(mFjpManagedBlocker)));
       mServer = builder.build();
       mServer.start();
     }
