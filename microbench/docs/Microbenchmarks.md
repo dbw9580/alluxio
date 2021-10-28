@@ -137,7 +137,7 @@ microbenchmarks are:
 
 ## Examples
 
-The code for the 2 example benchmarks can be found [here](examples).
+The code for the 2 example benchmarks can be found [here][examples].
 
 [exmaples]: https://github.com/dbw9580/alluxio/tree/benchmark/rpc-executor/microbench
 
