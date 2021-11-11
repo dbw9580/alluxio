@@ -140,6 +140,8 @@ Master.LostBlockCount:
   'Count of lost unique blocks'
 Master.LostFileCount:
   'Count of lost files. This number is cached and may not be in sync with Master.LostBlockCount'
+Master.MasterHeartbeatTriggeredActiveJobSize:
+  'Active job size started by master'
 Master.MountOps:
   'Total number of Mount operations'
 Master.NewBlocksGot:

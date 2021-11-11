@@ -70,6 +70,7 @@ Master.ListingCacheMisses,COUNTER
 Master.ListingCacheSize,GAUGE
 Master.LostBlockCount,GAUGE
 Master.LostFileCount,GAUGE
+Master.MasterHeartbeatTriggeredActiveJobSize,GAUGE
 Master.MountOps,COUNTER
 Master.NewBlocksGot,COUNTER
 Master.PathsDeleted,COUNTER
