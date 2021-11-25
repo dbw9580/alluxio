@@ -111,7 +111,7 @@ public class StressMasterBench extends Benchmark<MasterBenchTaskResult> {
           "fixed count must be > 0. fixedCount: " + mParameters.mFixedCount);
     }
 
-    if (!mBaseParameters.mDistributed) {
+    if (!mParameters.mSkipPrepare && !mBaseParameters.mDistributed) {
       // set hdfs conf for preparation client
       Configuration hdfsConf = new Configuration();
       // force delete, create dirs through to UFS
