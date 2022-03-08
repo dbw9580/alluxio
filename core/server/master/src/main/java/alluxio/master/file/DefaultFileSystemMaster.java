@@ -221,6 +221,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.Nullable;
+import javax.annotation.concurrent.GuardedBy;
 import javax.annotation.concurrent.NotThreadSafe;
 
 /**
@@ -401,6 +402,10 @@ public class DefaultFileSystemMaster extends CoreMaster
 
   /** Used to check pending/running backup from RPCs. */
   private CallTracker mStateLockCallTracker;
+
+  @GuardedBy("this")
+  private Function<Integer, List<Pair<AlluxioURI, LockedInodePath>>> mDeleteListCreator =
+      ArrayList::new;
 
   final ThreadPoolExecutor mSyncPrefetchExecutor = new ThreadPoolExecutor(
       ServerConfiguration.getInt(PropertyKey.MASTER_METADATA_SYNC_UFS_PREFETCH_POOL_SIZE),
@@ -1879,6 +1884,16 @@ public class DefaultFileSystemMaster extends CoreMaster
     }
   }
 
+  public synchronized void setDeleteListSupplier(
+      Function<Integer, List<Pair<AlluxioURI, LockedInodePath>>> supplier) {
+    mDeleteListCreator = supplier;
+  }
+
+  public synchronized
+      Function<Integer, List<Pair<AlluxioURI, LockedInodePath>>> getDeleteListSupplier() {
+    return mDeleteListCreator;
+  }
+
   /**
    * Implements file deletion.
    * <p>
@@ -1922,9 +1937,9 @@ public class DefaultFileSystemMaster extends CoreMaster
     // Inodes for which deletion will be attempted
     List<Pair<AlluxioURI, LockedInodePath>> inodesToDelete;
     if (inode.isDirectory()) {
-      inodesToDelete = new ArrayList<>((int) inode.asDirectory().getChildCount());
+      inodesToDelete = getDeleteListSupplier().apply((int) inode.asDirectory().getChildCount());
     } else {
-      inodesToDelete = new ArrayList<>(1);
+      inodesToDelete = getDeleteListSupplier().apply(1);
     }
 
     // Add root of sub-tree to delete
