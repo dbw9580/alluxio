@@ -15,8 +15,8 @@
     "https://checkstyle.org/dtds/suppressions_1_2.dtd">
 <suppressions>
   <!-- Does not require java doc on methods and types, as they are typically benchmark methods and params. -->
-  <suppress files="[\\/]src[\\/]main[\\/].*" message="Missing a Javadoc comment" checks="JavadocMethod" />
-  <suppress files="[\\/]src[\\/]main[\\/].*" message="Missing a Javadoc comment" checks="JavadocType" />
+  <suppress files="[\\/]src[\\/]main[\\/].*" checks="MissingJavadocMethod" />
+  <suppress files="[\\/]src[\\/]main[\\/].*" checks="MissingJavadocType" />
   <!-- Suppresses files in the target folder. -->
   <suppress files="[/\\]target[/\\]" checks=".*" />
   <!-- Suppresses files in the src/test folder. To be used for rules which only apply to
