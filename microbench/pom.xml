@@ -46,6 +46,10 @@
     </dependency>
     <!-- external dependencies -->
     <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-lang3</artifactId>
+    </dependency>
+    <dependency>
       <groupId>org.apache.hadoop</groupId>
       <artifactId>hadoop-client</artifactId>
     </dependency>
@@ -84,6 +88,11 @@
       <groupId>org.alluxio</groupId>
       <artifactId>alluxio-minicluster</artifactId>
       <version>2.8.0-SNAPSHOT</version>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-core</artifactId>
       <scope>compile</scope>
     </dependency>
   </dependencies>
