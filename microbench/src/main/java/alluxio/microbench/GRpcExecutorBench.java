@@ -67,7 +67,6 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-
 import javax.annotation.Nullable;
 
 @Fork(value = 1, jvmArgsPrepend = "-server")
@@ -95,7 +94,7 @@ public class GRpcExecutorBench {
     return threadState.mClient.getCounter();
   }
 
-  /**
+  /*
    * A baseline that is the upper bound.
    * This executes the blocking operation on the client thread directly, without going through
    * the RPC infrastructure.
@@ -161,7 +160,7 @@ public class GRpcExecutorBench {
     public void setup() throws Exception {
       int parallelWidth = Math.min(
           mNumCoreThreads,
-          ServerConfiguration.getInt(PropertyKey.MASTER_RPC_EXECUTOR_PARALLELISM));
+          ServerConfiguration.getInt(PropertyKey.MASTER_RPC_EXECUTOR_FJP_PARALLELISM));
       int maxThreads = getMaxThreads(mMaxThreadsStrategy);
 
       mFjpManagedBlocker = new FjpManagedBlocker(() -> {
@@ -181,7 +180,7 @@ public class GRpcExecutorBench {
               mNumCoreThreads, // #core threads
               maxThreads,      // #max threads
               ServerConfiguration.getInt(
-                  PropertyKey.MASTER_RPC_EXECUTOR_MIN_RUNNABLE), // #min threads
+                  PropertyKey.MASTER_RPC_EXECUTOR_FJP_MIN_RUNNABLE), // #min threads
               null,
               ServerConfiguration.getMs(PropertyKey.MASTER_RPC_EXECUTOR_KEEPALIVE),
               TimeUnit.MILLISECONDS);
