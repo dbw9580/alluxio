@@ -21,7 +21,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import alluxio.AlluxioURI;
-import alluxio.annotation.SuppressFBWarnings;
 import alluxio.grpc.DeletePOptions;
 import alluxio.master.file.DefaultFileSystemMaster;
 import alluxio.master.file.PersistJob;
@@ -61,7 +60,6 @@ import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.concurrent.TimeUnit;
 
-@SuppressFBWarnings("UWF_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR")
 @Fork(value = 1, jvmArgsPrepend = "-server")
 @Warmup(iterations = 2, time = 3, timeUnit = TimeUnit.SECONDS)
 @Measurement(iterations = 6, time = 3, timeUnit = TimeUnit.SECONDS)
