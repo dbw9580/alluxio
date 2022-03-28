@@ -204,6 +204,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -1920,12 +1921,7 @@ public class DefaultFileSystemMaster extends CoreMaster
     }
 
     // Inodes for which deletion will be attempted
-    List<Pair<AlluxioURI, LockedInodePath>> inodesToDelete;
-    if (inode.isDirectory()) {
-      inodesToDelete = new ArrayList<>((int) inode.asDirectory().getChildCount());
-    } else {
-      inodesToDelete = new ArrayList<>(1);
-    }
+    List<Pair<AlluxioURI, LockedInodePath>> inodesToDelete = new LinkedList<>();
 
     // Add root of sub-tree to delete
     inodesToDelete.add(new Pair<>(inodePath.getUri(), inodePath));
