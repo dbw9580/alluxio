@@ -61,7 +61,7 @@ public class RecursiveDeleteBench2 {
   public static class BenchState {
     public static final AlluxioURI DIR_PATH = new AlluxioURI("/rm-bench");
 
-    @Param({"100", "200", "400"})
+    @Param({"50", "100", "200"})
     public long mNumDirectChild;
     @Param({"flat", "nested_1x"})
     public String mDirLayout;
