@@ -145,7 +145,7 @@ public class RecursiveDeleteBench {
       doReturn(optionsBuilder).when(mDeleteContext).getOptions();
 
       mMaster = mock(DefaultFileSystemMaster.class);
-      doCallRealMethod().when(mMaster).deleteInternal(any(), any(), any());
+      doCallRealMethod().when(mMaster).deleteInternal(any(), any(), any(), anyBoolean());
 
       mInodeTree = mockField("mInodeTree", InodeTree.class);
       when(mInodeTree.isRootId(anyLong())).thenReturn(false);
@@ -218,7 +218,8 @@ public class RecursiveDeleteBench {
 
   @Benchmark
   public void dumb(BenchState state) throws Exception {
-    state.mMaster.deleteInternal(state.mRpcContext, state.mLockedInodePath, state.mDeleteContext);
+    state.mMaster.deleteInternal(
+        state.mRpcContext, state.mLockedInodePath, state.mDeleteContext, true);
   }
 
   public static void main(String[] args) throws Exception {

@@ -101,7 +101,7 @@ public class RecursiveDeleteBench2 {
       }
 
       // override some defaults to save time creating files
-      ServerConfiguration.set(PropertyKey.SECURITY_AUTHENTICATION_TYPE, NOSASL.getAuthName());
+      ServerConfiguration.set(PropertyKey.SECURITY_AUTHENTICATION_TYPE, NOSASL.toString());
       ServerConfiguration.set(PropertyKey.SECURITY_AUTHORIZATION_PERMISSION_ENABLED, false);
       ServerConfiguration.set(PropertyKey.MASTER_JOURNAL_TYPE, NOOP.toString());
       ServerConfiguration.set(PropertyKey.USER_FILE_WRITE_TYPE_DEFAULT, MUST_CACHE.name());
@@ -155,7 +155,8 @@ public class RecursiveDeleteBench2 {
       state.mFsMaster.deleteInternal(
           rpcContext,
           lockedInodePath,
-          BenchState.CACHED_DELETE_CONTEXT
+          BenchState.CACHED_DELETE_CONTEXT,
+          true
       );
     }
   }
