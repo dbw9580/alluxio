@@ -37,6 +37,8 @@ public interface BufOwner<OwnerT extends BufOwner<OwnerT>> extends AutoCloseable
    *
    * @param envelope the envelope
    * @return the buffer owned by the current owner
+   * @implSpec this is provided as a convenience method and should not be overridden or called
+   * from outside the implementor.
    */
   @MustBeClosed
   @CheckReturnValue

@@ -37,16 +37,19 @@ public interface BufferEnvelope {
    * After this, the envelope is void and must not be used.
    *
    * @param owner the new owner of this buffer
-   * @return unsealed
    * @param <OwnerT> type
+   * @return buffer owned by owner
+   * @implSpec the internal reference to the buffer must be cleared and moved into the owned buffer
    */
   @MustBeClosed
   <OwnerT extends BufOwner<OwnerT>> OwnedByteBuf<OwnerT> unseal(OwnerT owner);
 
   /**
    * Safely disposes the buffer in the envelope.
+   *
+   * @param envelope the envelope to dispose
    */
-  default void dispose() {
-    Disposer.INSTANCE.dispose(this);
+  static void dispose(BufferEnvelope envelope) {
+    Disposer.INSTANCE.dispose(envelope);
   }
 }

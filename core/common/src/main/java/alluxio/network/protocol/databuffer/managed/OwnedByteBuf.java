@@ -22,17 +22,22 @@ import io.netty.buffer.ByteBuf;
  * <pre>
  *   class SmartByteBuf extends ByteBuf implements OwnedByteBuf {}
  * </pre>
- * and breaking the non-aliasing rule by obtaining a reference to ByteBuf.
+ * and breaking the non-aliasing rule by allowing client code to obtain a strong reference
+ * to ByteBuf.
  * @param <OwnerT> marker type indicating the owning class or function
  */
 public abstract class OwnedByteBuf<OwnerT extends BufOwner<OwnerT>> implements AutoCloseable {
   /**
    * Puts the buffer into an envelope so that the ownership can be transferred to a receiver.
-   * The receiver should call {@link BufferEnvelope#unseal(BufOwner)} ()} to claim ownership.
+   * The receiver should call {@link BufferEnvelope#unseal(BufOwner)} ()} to claim ownership,
+   * or call {@link BufferEnvelope#dispose(BufferEnvelope)} to dispose it.
    * After the ownership transfer, this wrapper should not be used anymore in any way,
    * and any call on this buffer's methods will throw exception.
    *
    * @return buffer with transferred ownership
+   * @implSpec calling this method should clear the internal reference to the wrapped buffer and
+   * move it into the envelope. Otherwise, the implementor must explicitly warn caller about
+   * it safety assumptions.
    */
   @CheckReturnValue // the envelope must be unsealed by a receiver otherwise the buffer is leaked
   public abstract BufferEnvelope send();
@@ -50,7 +55,10 @@ public abstract class OwnedByteBuf<OwnerT extends BufOwner<OwnerT>> implements A
    * over to a component that does its own buffer management.
    * <br>
    * <b>WARNING: retaining the raw buffer could lead to memory leaks!</b>
+   *
    * @return the underlying buffer
+   * @implSpec calling this method must clear the internal reference to the buffer, otherwise
+   * the implementor must warn its user about its safety assumptions.
    */
   @CheckReturnValue
   public abstract ByteBuf unsafeUnwrap();
