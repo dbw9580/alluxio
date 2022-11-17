@@ -181,7 +181,7 @@ public final class MetricsSystem {
     return 0;
   }
 
-  @GuardedBy("MetricsSystem")
+  @GuardedBy("MetricsSystem.class")
   private static List<Sink> sSinks;
 
   public static final String SINK_REGEX = "^sink\\.(.+)\\.(.+)";
@@ -483,7 +483,7 @@ public final class MetricsSystem {
       throws IllegalArgumentException {
     int period = (int) MINIMAL_POLL_UNIT.convert(pollPeriod, pollUnit);
     Preconditions.checkArgument(period >= MINIMAL_POLL_PERIOD,
-        "Polling period %d %d is below the minimal polling period", pollPeriod, pollUnit);
+        "Polling period %s %s is below the minimal polling period", pollPeriod, pollUnit);
   }
 
   /**

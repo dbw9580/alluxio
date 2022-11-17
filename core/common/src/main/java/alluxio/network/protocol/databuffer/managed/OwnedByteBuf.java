@@ -12,6 +12,7 @@
 package alluxio.network.protocol.databuffer.managed;
 
 import com.google.errorprone.annotations.CheckReturnValue;
+import com.google.errorprone.annotations.MustBeClosed;
 import io.netty.buffer.ByteBuf;
 
 /**
@@ -27,6 +28,9 @@ import io.netty.buffer.ByteBuf;
  * @param <OwnerT> marker type indicating the owning class or function
  */
 public abstract class OwnedByteBuf<OwnerT extends BufOwner<OwnerT>> implements AutoCloseable {
+  @MustBeClosed
+  protected OwnedByteBuf() {}
+
   /**
    * Puts the buffer into an envelope so that the ownership can be transferred to a receiver.
    * The receiver should call {@link BufferEnvelope#unseal(BufOwner)} ()} to claim ownership,
@@ -39,7 +43,8 @@ public abstract class OwnedByteBuf<OwnerT extends BufOwner<OwnerT>> implements A
    * move it into the envelope. Otherwise, the implementor must explicitly warn caller about
    * it safety assumptions.
    */
-  @CheckReturnValue // the envelope must be unsealed by a receiver otherwise the buffer is leaked
+  @CheckReturnValue
+  @MustBeClosed // the envelope must be unsealed by a receiver otherwise the buffer is leaked
   public abstract BufferEnvelope send();
 
   /**

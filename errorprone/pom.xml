@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ The Alluxio Open Foundation licenses this work under the Apache License, version 2.0
+  ~ (the "License"). You may not use this work except in compliance with the License, which is
+  ~ available at www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ This software is distributed on an "AS IS" basis, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
+  ~ either express or implied, as more fully set forth in the License.
+  ~
+  ~ See the NOTICE file distributed with this work for information regarding copyright ownership.
+  -->
+
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <artifactId>alluxio-parent</artifactId>
+    <groupId>org.alluxio</groupId>
+    <version>2.9.0-SNAPSHOT</version>
+  </parent>
+  <artifactId>alluxio-errorprone</artifactId>
+  <packaging>jar</packaging>
+  <name>Alluxio Errorprone Checkers</name>
+  <description>Errorprone checkers</description>
+
+
+  <properties>
+    <maven.compiler.source>11</maven.compiler.source>
+    <maven.compiler.target>11</maven.compiler.target>
+  </properties>
+
+  <dependencies>
+    <dependency>
+      <groupId>com.google.errorprone</groupId>
+      <artifactId>error_prone_core</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>com.google.errorprone</groupId>
+      <artifactId>error_prone_test_helpers</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+</project>

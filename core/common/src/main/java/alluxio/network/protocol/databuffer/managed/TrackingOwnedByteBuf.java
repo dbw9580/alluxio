@@ -12,6 +12,7 @@
 package alluxio.network.protocol.databuffer.managed;
 
 import com.google.common.base.Preconditions;
+import com.google.errorprone.annotations.MustBeClosed;
 import io.netty.buffer.ByteBuf;
 
 import java.lang.ref.WeakReference;
@@ -28,11 +29,14 @@ public class TrackingOwnedByteBuf<OwnerT extends BufOwner<OwnerT>> extends Owned
   private final AtomicReference<ByteBuf> mBuf;
   private final ArrayList<Class<? extends BufOwner<?>>> mHistoricOwners;
 
+  // add thread information
+
   /**
    * Creates a new owned {@link ByteBuf}. The buffer must be freshly allocated and has
    * a reference count of 1.
    * @param buffer the wrapped buffer
    */
+  @MustBeClosed
   protected TrackingOwnedByteBuf(ByteBuf buffer,
       ArrayList<Class<? extends BufOwner<?>>> historicOwners,
       Class<? extends OwnerT> newOwner) {
@@ -51,6 +55,7 @@ public class TrackingOwnedByteBuf<OwnerT extends BufOwner<OwnerT>> extends Owned
    * @param <OwnerT> owner type
    */
   // todo(bowen): this is unsafe as buffer could already be aliased, even though the ref count is 1
+  @MustBeClosed
   public static <OwnerT extends BufOwner<OwnerT>>
       TrackingOwnedByteBuf<OwnerT> fromFreshAllocation(ByteBuf buffer, OwnerT owner) {
     return new TrackingOwnedByteBuf<>(ensureUnique(buffer), new ArrayList<>(), owner.selfType());
@@ -123,6 +128,7 @@ public class TrackingOwnedByteBuf<OwnerT extends BufOwner<OwnerT>> extends Owned
     }
 
     @Override
+    @MustBeClosed
     public <NewOwnerT extends BufOwner<NewOwnerT>> OwnedByteBuf<NewOwnerT>
         unseal(NewOwnerT newOwner) {
       ByteBuf buf = mBufRef.getAndSet(null);
@@ -130,6 +136,14 @@ public class TrackingOwnedByteBuf<OwnerT extends BufOwner<OwnerT>> extends Owned
         throw new IllegalStateException("unsealing void envelope");
       }
       return new TrackingOwnedByteBuf<>(buf, mHistoricOwners, newOwner.selfType());
+    }
+
+    @Override
+    public void close() {
+      ByteBuf buf = mBufRef.getAndSet(null);
+      if (buf != null) {
+        buf.release();
+      }
     }
   }
 }

@@ -14,6 +14,7 @@ package alluxio.network.protocol.databuffer.managed;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.errorprone.annotations.CheckReturnValue;
+import com.google.errorprone.annotations.MustBeClosed;
 import io.netty.buffer.ByteBuf;
 
 import java.lang.ref.WeakReference;
@@ -30,6 +31,7 @@ public class UnsafeOwnedByteBuf<OwnerT extends BufOwner<OwnerT>> extends OwnedBy
   private final SharedByteBuf<OwnerT> mSharedBuf;
 
   // safety: buffer must not have any other live strong references
+  @MustBeClosed
   protected UnsafeOwnedByteBuf(ByteBuf buffer, Class<? extends OwnerT> ownerClass) {
     Preconditions.checkArgument(buffer.refCnt() == 1);
     mBuf = buffer;
@@ -45,6 +47,7 @@ public class UnsafeOwnedByteBuf<OwnerT extends BufOwner<OwnerT>> extends OwnedBy
    * @return envelope
    */
   @VisibleForTesting
+  @MustBeClosed
   public static BufferEnvelope unsafeSeal(ByteBuf buf) {
     return new UnsafeOwnedByteBuf<>(buf, UntrackedOwner.class);
   }
@@ -79,6 +82,7 @@ public class UnsafeOwnedByteBuf<OwnerT extends BufOwner<OwnerT>> extends OwnedBy
   }
 
   @Override
+  @MustBeClosed
   public <NewOwnerT extends BufOwner<NewOwnerT>> OwnedByteBuf<NewOwnerT> unseal(NewOwnerT owner) {
     return new UnsafeOwnedByteBuf<>(move(), owner.selfType());
   }

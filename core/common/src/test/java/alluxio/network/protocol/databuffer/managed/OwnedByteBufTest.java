@@ -9,18 +9,16 @@
  * See the NOTICE file distributed with this work for information regarding copyright ownership.
  */
 
-package alluxio.network.protocol.databuffer;
+package alluxio.network.protocol.databuffer.managed;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 import alluxio.Constants;
-import alluxio.network.protocol.databuffer.managed.BufOwner;
-import alluxio.network.protocol.databuffer.managed.BufferEnvelope;
-import alluxio.network.protocol.databuffer.managed.OwnedByteBuf;
-import alluxio.network.protocol.databuffer.managed.SharedByteBuf;
-import alluxio.network.protocol.databuffer.managed.UnsafeOwnedByteBuf;
+import alluxio.network.protocol.databuffer.PooledDirectNioByteBuf;
 
+import com.google.errorprone.annotations.MustBeClosed;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import org.junit.Test;
@@ -37,6 +35,13 @@ public class OwnedByteBufTest {
           assertThrows(IllegalStateException.class, externalBuffer::send);
       assertTrue(thrown.getMessage().contains(Marker.class.getName()));
     }
+  }
+
+  @Test
+  public void notClosing() {
+    byte[] buf = new UnsafeOwnedByteBuf<>(Unpooled.buffer(), Marker.class)
+        .unsafeUnwrap().array();
+    assertEquals(1, buf.length);
   }
 
   private static class Marker implements BufOwner<Marker> {
@@ -58,6 +63,7 @@ public class OwnedByteBufTest {
     }
 
     // read from external data source, copy into new buffer and hand out
+    @MustBeClosed
     public BufferEnvelope copyFrom(ByteBuf data) {
       // `data` may be shared by someone else
       // must do a copy into a freshly allocated buffer

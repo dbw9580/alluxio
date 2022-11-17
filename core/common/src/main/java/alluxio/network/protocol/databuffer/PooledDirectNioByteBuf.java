@@ -16,6 +16,7 @@ import alluxio.network.protocol.databuffer.managed.BufferEnvelope;
 import alluxio.network.protocol.databuffer.managed.OwnedByteBuf;
 import alluxio.network.protocol.databuffer.managed.TrackingOwnedByteBuf;
 
+import com.google.errorprone.annotations.MustBeClosed;
 import io.netty.buffer.ByteBuf;
 
 import java.nio.ByteBuffer;
@@ -66,8 +67,17 @@ public class PooledDirectNioByteBuf extends RefCountedNioByteBuf {
 
     // todo(bowen): make the tracking optional and configurable
     @Override
+    @MustBeClosed
     public <OwnerT extends BufOwner<OwnerT>> OwnedByteBuf<OwnerT> unseal(OwnerT owner) {
       return TrackingOwnedByteBuf.fromFreshAllocation(mBufRef.getAndSet(null), owner);
+    }
+
+    @Override
+    public void close() {
+      ByteBuf buf = mBufRef.getAndSet(null);
+      if (buf != null) {
+        buf.release();
+      }
     }
   }
 }

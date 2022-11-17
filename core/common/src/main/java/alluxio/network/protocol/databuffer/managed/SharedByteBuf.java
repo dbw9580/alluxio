@@ -11,6 +11,8 @@
 
 package alluxio.network.protocol.databuffer.managed;
 
+import alluxio.annotation.SuppressFBWarnings;
+
 import io.netty.buffer.ByteBuf;
 
 import java.lang.ref.WeakReference;
@@ -20,7 +22,9 @@ import java.lang.ref.WeakReference;
  * @param <OwnerT>
  */
 public class SharedByteBuf<OwnerT extends BufOwner<OwnerT>> /* todo(bowen): extends ByteBuf */ {
+  @SuppressFBWarnings("URF_UNREAD_FIELD")
   private final Class<? extends BufOwner<?>> mOwnerClass;
+  @SuppressFBWarnings("URF_UNREAD_FIELD")
   private final WeakReference<ByteBuf> mBuf;
 
   protected SharedByteBuf(WeakReference<ByteBuf> bufRef,

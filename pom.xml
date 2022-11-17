@@ -188,6 +188,7 @@
     <module>tests</module>
     <module>underfs</module>
     <module>webui</module>
+    <module>errorprone</module>
   </modules>
 
   <dependencyManagement>
@@ -267,6 +268,16 @@
         <groupId>com.google.guava</groupId>
         <artifactId>guava</artifactId>
         <version>${guava.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.google.errorprone</groupId>
+        <artifactId>error_prone_core</artifactId>
+        <version>2.16</version>
+      </dependency>
+      <dependency>
+        <groupId>com.google.errorprone</groupId>
+        <artifactId>error_prone_test_helpers</artifactId>
+        <version>2.16</version>
       </dependency>
       <dependency>
         <groupId>com.google.protobuf</groupId>

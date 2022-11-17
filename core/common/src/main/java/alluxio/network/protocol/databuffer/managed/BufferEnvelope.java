@@ -31,7 +31,7 @@ import com.google.errorprone.annotations.MustBeClosed;
  * it as a class field will cause memory leak.
  */
 @CheckReturnValue
-public interface BufferEnvelope {
+public interface BufferEnvelope extends AutoCloseable {
   /**
    * Unseals this envelope and grants ownership of the buffer to the owner.
    * After this, the envelope is void and must not be used.
