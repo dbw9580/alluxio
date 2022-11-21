@@ -15,7 +15,6 @@ import com.google.common.base.Preconditions;
 import com.google.errorprone.annotations.MustBeClosed;
 import io.netty.buffer.ByteBuf;
 
-import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
@@ -68,7 +67,7 @@ public class TrackingOwnedByteBuf<OwnerT extends BufOwner<OwnerT>> extends Owned
 
   @Override
   public SharedByteBuf<OwnerT> lend() {
-    return new SharedByteBuf<>(new WeakReference<>(share()), mOwnerClass);
+    return new SharedByteBuf<>(share(), mOwnerClass);
   }
 
   @Override

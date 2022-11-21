@@ -17,8 +17,6 @@ import com.google.errorprone.annotations.CheckReturnValue;
 import com.google.errorprone.annotations.MustBeClosed;
 import io.netty.buffer.ByteBuf;
 
-import java.lang.ref.WeakReference;
-
 /**
  * An unsafe holder that assumes the caller obeys the ownership rules,
  * and has only minimal runtime overhead to prevent use after move.
@@ -36,7 +34,7 @@ public class UnsafeOwnedByteBuf<OwnerT extends BufOwner<OwnerT>> extends OwnedBy
     Preconditions.checkArgument(buffer.refCnt() == 1);
     mBuf = buffer;
     mOwnerClass = ownerClass;
-    mSharedBuf = new SharedByteBuf<>(new WeakReference<>(mBuf), ownerClass);
+    mSharedBuf = new SharedByteBuf<>(mBuf, ownerClass);
   }
 
   /**
