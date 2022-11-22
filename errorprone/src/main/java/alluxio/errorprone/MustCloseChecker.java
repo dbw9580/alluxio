@@ -33,7 +33,7 @@ import com.sun.source.tree.Tree;
     severity = SeverityLevel.ERROR
 )
 public class MustCloseChecker extends BugChecker
-    implements BugChecker.ClassTreeMatcher, BugChecker.ExpressionStatementTreeMatcher {
+    implements BugChecker.ClassTreeMatcher {
 
   private static final String MUST_CLOSE_CLASS_NAME = MustClose.class.getName();
   private static final Matcher<Tree> IS_AUTOCLOSEABLE = Matchers.isSubtypeOf(AutoCloseable.class);
