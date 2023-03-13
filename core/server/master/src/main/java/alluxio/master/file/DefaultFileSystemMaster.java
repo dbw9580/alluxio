@@ -25,6 +25,7 @@ import alluxio.client.job.JobMasterClientPool;
 import alluxio.clock.SystemClock;
 import alluxio.collections.Pair;
 import alluxio.collections.PrefixList;
+import alluxio.concurrent.LockMode;
 import alluxio.conf.Configuration;
 import alluxio.conf.PropertyKey;
 import alluxio.exception.AccessControlException;
@@ -699,11 +700,13 @@ public class DefaultFileSystemMaster extends CoreMaster
                 Configuration.getMs(PropertyKey.MASTER_PERIODIC_BLOCK_INTEGRITY_CHECK_INTERVAL),
                 Configuration.global(), mMasterContext.getUserState()));
       }
-      getExecutorService().submit(
-          new HeartbeatThread(HeartbeatContext.MASTER_TTL_CHECK,
-              new InodeTtlChecker(this, mInodeTree),
-              () -> Configuration.getMs(PropertyKey.MASTER_TTL_CHECKER_INTERVAL_MS),
-              Configuration.global(), mMasterContext.getUserState()));
+      if (Configuration.getMs(PropertyKey.MASTER_TTL_CHECKER_INTERVAL_MS) > 0) {
+        getExecutorService().submit(
+            new HeartbeatThread(HeartbeatContext.MASTER_TTL_CHECK,
+                new InodeTtlChecker(this, mInodeTree),
+                () -> Configuration.getMs(PropertyKey.MASTER_TTL_CHECKER_INTERVAL_MS),
+                Configuration.global(), mMasterContext.getUserState()));
+      }
       getExecutorService().submit(
           new HeartbeatThread(HeartbeatContext.MASTER_LOST_FILES_DETECTION,
               new LostFileDetector(this, mBlockMaster, mInodeTree),
