@@ -35,6 +35,7 @@ import alluxio.resource.LockResource;
 
 import com.codahale.metrics.Counter;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -84,7 +85,7 @@ import javax.annotation.concurrent.ThreadSafe;
 public class LocalCacheManager implements CacheManager {
   private static final Logger LOG = LoggerFactory.getLogger(LocalCacheManager.class);
 
-  private static final int LOCK_SIZE = 1024;
+  private static final int LOCK_SIZE = 3;
   private final long mCacheSize;
   /** A readwrite lock pool to guard individual pages based on striping. */
   private final ReadWriteLock[] mPageLocks = new ReentrantReadWriteLock[LOCK_SIZE];
@@ -385,8 +386,34 @@ public class LocalCacheManager implements CacheManager {
       }
     }
 
+    class LockId {
+      private final int mLockId;
+      private final String mName;
+
+      public LockId(int lockId, String name) {
+        mLockId = lockId;
+        mName = name;
+      }
+
+      @Override
+      public String toString() {
+        return MoreObjects.toStringHelper(this)
+            .add("mLockId", mLockId)
+            .add("mName", mName)
+            .toString();
+      }
+    }
+
+    PageId victimPageId = victimPageInfo.getPageId();
     Pair<ReadWriteLock, ReadWriteLock> pageLockPair =
-        getPageLockPair(pageId, victimPageInfo.getPageId());
+        getPageLockPair(pageId, victimPageId);
+    LockId lockId1 = new LockId(getPageLockId(pageId), "new page: " + pageId);
+    System.out.println("Thread ID:" + Thread.currentThread().getName()
+        + ", lockId for new page: " + lockId1);
+    LockId lockId2 = new LockId(getPageLockId(victimPageId),
+        "victim page: " + victimPageId);
+    System.out.println("Thread ID:" + Thread.currentThread().getName()
+        + ", lockId for victim page: " + lockId2);
     try (LockResource r1 = new LockResource(pageLockPair.getFirst().writeLock());
         LockResource r2 = new LockResource(pageLockPair.getSecond().writeLock())) {
       // Excise a two-phase commit to evict victim and add new page:

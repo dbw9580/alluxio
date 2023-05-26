@@ -20,8 +20,10 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import alluxio.Constants;
+import alluxio.ProjectConstants;
 import alluxio.client.file.CacheContext;
 import alluxio.client.file.cache.evictor.CacheEvictor;
+import alluxio.client.file.cache.evictor.CacheEvictorOptions;
 import alluxio.client.file.cache.evictor.FIFOCacheEvictor;
 import alluxio.client.file.cache.evictor.LRUCacheEvictor;
 import alluxio.client.file.cache.evictor.UnevictableCacheEvictor;
@@ -38,6 +40,7 @@ import alluxio.conf.InstancedConfiguration;
 import alluxio.conf.PropertyKey;
 import alluxio.exception.PageNotFoundException;
 import alluxio.exception.status.ResourceExhaustedException;
+import alluxio.file.ByteArrayTargetBuffer;
 import alluxio.util.CommonUtils;
 import alluxio.util.WaitForOptions;
 import alluxio.util.io.BufferUtils;
@@ -56,16 +59,24 @@ import org.junit.rules.TemporaryFolder;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 /**
  * Tests for the {@link LocalCacheManager} class.
@@ -1088,6 +1099,58 @@ public final class LocalCacheManagerTest {
     assertEquals(zeroLenFilePageId,
         mCacheManager.getCachedPageIdsByFileId(zeroLenFilePageId.getFileId(),
             0).get(0));
+  }
+
+  @Test
+  public void concurrentGetAndLoad() throws Exception {
+    PageStoreOptions pageStoreOptions = new PageStoreOptions();
+    pageStoreOptions.setStoreType(PageStoreType.MEM)
+        .setRootDir(Path.of("/nonexistent"))
+        .setCacheSize(Constants.MB * 64)
+        .setPageSize(Constants.MB)
+        .setIndex(0)
+        .setAlluxioVersion(ProjectConstants.VERSION)
+        .setTimeoutDuration(-1);
+    CacheManagerOptions options = new CacheManagerOptions();
+    options.setAsyncRestoreEnabled(false)
+        .setPageStoreOptions(ImmutableList.of(pageStoreOptions))
+        .setCacheEvictorOptions(new CacheEvictorOptions().setEvictorClass(LRUCacheEvictor.class))
+        .setQuotaEnabled(false)
+        .setIsAsyncWriteEnabled(false)
+        .setMaxEvictionRetries(10);
+    LocalCacheManager localCacheManager =
+        LocalCacheManager.create(options, PageMetaStore.create(options));
+    byte[] megaByteData = BufferUtils.getIncreasingByteArray(Constants.MB);
+    Supplier<byte[]> externalDataSupplier = () -> megaByteData;
+    ExecutorService executorService = Executors.newFixedThreadPool(10);
+    List<Callable<Boolean>> tasks = IntStream.range(0, 10)
+        .mapToObj(index -> (Callable<Boolean>) () -> {
+          byte[] out = new byte[Constants.KB];
+          for (int j = 0; j < 1000; j++) {
+            ByteArrayTargetBuffer buffer = new ByteArrayTargetBuffer(out, 0);
+            ThreadLocalRandom random = ThreadLocalRandom.current();
+            PageId pageId = new PageId("file", random.nextInt(1024));
+            int bytesRead = localCacheManager.getAndLoad(pageId, 0, Constants.KB, buffer,
+                CacheContext.defaults(), externalDataSupplier);
+            if (bytesRead < 0) {
+              return false;
+            }
+            if (!BufferUtils.equalIncreasingByteArray(out.length, out)) {
+              return false;
+            }
+          }
+          return true;
+        })
+        .collect(Collectors.toList());
+    List<Future<Boolean>> results = executorService.invokeAll(tasks);
+    assertTrue(results.stream().allMatch(booleanFuture -> {
+      try {
+        return booleanFuture.get();
+      } catch (Exception e) {
+        System.err.println(e.toString());
+        return false;
+      }
+    }));
   }
 
   /**
