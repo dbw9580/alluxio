@@ -40,7 +40,7 @@ public class FuseOptions {
   /**
    * The UFS root that Fuse mounts.
    * In standalone Fuse SDK, this is different from {@link PropertyKey#DORA_CLIENT_UFS_ROOT}.
-   * */
+   */
   public static final PropertyKey FUSE_UFS_ROOT =
       PropertyKey.Builder.stringBuilder("fuse.ufs.root")
           .setIsBuiltIn(false)
@@ -59,7 +59,7 @@ public class FuseOptions {
    * @param updateCheckEnabled whether to enable update check
    * @param specialCommandEnabled whether fuse special commands are enabled
    */
-  private FuseOptions(FileSystemOptions fileSystemOptions,
+  protected FuseOptions(FileSystemOptions fileSystemOptions,
       Set<String> fuseMountOptions, boolean updateCheckEnabled, boolean specialCommandEnabled) {
     mFileSystemOptions = Preconditions.checkNotNull(fileSystemOptions);
     mFuseMountOptions = Preconditions.checkNotNull(fuseMountOptions);
@@ -102,7 +102,8 @@ public class FuseOptions {
     private boolean mUpdateCheckEnabled;
     private boolean mSpecialCommandEnabled;
 
-    public Builder() { }
+    public Builder() {
+    }
 
     public static Builder fromConfig(AlluxioConfiguration conf) {
       FuseOptions.Builder builder = new FuseOptions.Builder();
