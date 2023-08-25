@@ -16,6 +16,7 @@ import static com.google.common.base.Preconditions.checkState;
 import alluxio.AlluxioURI;
 import alluxio.CloseableSupplier;
 import alluxio.PositionReader;
+import alluxio.client.ClientIdentity;
 import alluxio.client.block.BlockWorkerInfo;
 import alluxio.client.block.stream.BlockWorkerClient;
 import alluxio.client.block.stream.GrpcDataReader;
@@ -61,6 +62,11 @@ import alluxio.proto.dataserver.Protocol;
 import alluxio.resource.CloseableResource;
 import alluxio.wire.WorkerNetAddress;
 
+import com.google.common.hash.HashCode;
+import com.google.common.hash.HashFunction;
+import com.google.common.hash.Hasher;
+import com.google.common.hash.Hashing;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -72,12 +78,16 @@ import javax.annotation.Nullable;
  */
 public class DoraCacheClient {
   public static final int DUMMY_BLOCK_ID = -1;
-  public static final int PREFERRED_WORKER_COUNT = 1;
+  private static final HashFunction CLIENT_ID_HASH = Hashing.murmur3_32_fixed();
   private final FileSystemContext mContext;
   private final long mChunkSize;
   private final WorkerLocationPolicy mWorkerLocationPolicy;
 
   private final boolean mNettyTransEnabled;
+
+  private final int mPreferredWorkerCount;
+
+  private final ClientIdentity mClientIdentity;
 
   /**
    * Constructor.
@@ -86,11 +96,14 @@ public class DoraCacheClient {
    */
   public DoraCacheClient(FileSystemContext context) {
     mContext = context;
+    mClientIdentity = ClientIdentity.fromAppId(context.getId());
     mWorkerLocationPolicy = WorkerLocationPolicy.Factory.create(context.getClusterConf());
     mChunkSize = mContext.getClusterConf().getBytes(
         PropertyKey.USER_STREAMING_READER_CHUNK_SIZE_BYTES);
     mNettyTransEnabled =
         context.getClusterConf().getBoolean(PropertyKey.USER_NETTY_DATA_TRANSMISSION_ENABLED);
+    int minReplicaCount = context.getClusterConf().getInt(PropertyKey.USER_FILE_REPLICATION_MIN);
+    mPreferredWorkerCount = Math.max(1, minReplicaCount);
   }
 
   /**
@@ -174,6 +187,7 @@ public class DoraCacheClient {
 
   /**
    * List Status from Worker.
+   *
    * @param path
    * @param options
    * @return list of URIStatus
@@ -225,6 +239,7 @@ public class DoraCacheClient {
 
   /**
    * Create File.
+   *
    * @param path the file path
    * @param options the option for creating operation
    * @return URIStatus of new file
@@ -249,8 +264,9 @@ public class DoraCacheClient {
 
   /**
    * Mark the newly created and written file as complete.
-   *
+   * <p>
    * This is called when out stream is closed. This is equivalent to close() in some file system.
+   *
    * @param path The file path
    * @param options the close option
    * @param uuid the uuid of its open file handle
@@ -273,6 +289,7 @@ public class DoraCacheClient {
 
   /**
    * Delete a file.
+   *
    * @param path
    * @param options
    */
@@ -292,6 +309,7 @@ public class DoraCacheClient {
 
   /**
    * Rename a src file/dir to dst file/dir.
+   *
    * @param src the source file/dir
    * @param dst the destination file/dir
    * @param options the rename option
@@ -314,6 +332,7 @@ public class DoraCacheClient {
 
   /**
    * Create a dir.
+   *
    * @param path the name of the dir
    * @param options the option of this operation
    */
@@ -334,6 +353,7 @@ public class DoraCacheClient {
 
   /**
    * Check existence of a file or dir.
+   *
    * @param path the path of the file or dir
    * @param options the option of this operation
    * @return true if the file/dir exists, false otherwise
@@ -358,6 +378,7 @@ public class DoraCacheClient {
 
   /**
    * Set attributes for a file or dir.
+   *
    * @param path the path of the file or dir
    * @param options the option of this operation
    * @throws FileDoesNotExistException
@@ -380,6 +401,7 @@ public class DoraCacheClient {
 
   /**
    * Get the worker net address of the specific file path.
+   *
    * @param path the file path
    * @return the related worker net address where file locates
    */
@@ -388,9 +410,14 @@ public class DoraCacheClient {
       List<BlockWorkerInfo> workers = mContext.getCachedWorkers();
       List<BlockWorkerInfo> preferredWorkers =
           mWorkerLocationPolicy.getPreferredWorkers(workers,
-              path, PREFERRED_WORKER_COUNT);
+              path, mPreferredWorkerCount);
       checkState(preferredWorkers.size() > 0);
-      WorkerNetAddress workerNetAddress = preferredWorkers.get(0).getNetAddress();
+      Hasher hasher = CLIENT_ID_HASH.newHasher();
+      hasher.putObject(mClientIdentity, new ClientIdentity.ClientIdentityFunnel());
+      HashCode hashCode = hasher.hash();
+      int intHashCode = hashCode.asInt();
+      int chosenWorkerIndex = Math.abs(intHashCode) % preferredWorkers.size();
+      WorkerNetAddress workerNetAddress = preferredWorkers.get(chosenWorkerIndex).getNetAddress();
       return workerNetAddress;
     } catch (IOException e) {
       // If failed to find workers in the cluster or failed to find the specified number of

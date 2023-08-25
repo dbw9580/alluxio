@@ -78,19 +78,19 @@ import javax.security.auth.Subject;
  * An object which houses resources and information for performing {@link FileSystem} operations.
  * Typically, a single JVM should only need one instance of a {@link FileSystem} to connect to
  * Alluxio. The reference to that client object should be shared among threads.
- *
+ * <p>
  * A second {@link FileSystemContext} object should only be created when a user needs to connect to
  * Alluxio with a different {@link Subject} and/or {@link AlluxioConfiguration}.
  * {@link FileSystemContext} instances should be created sparingly because each instance creates
  * its own thread pools of {@link FileSystemMasterClient} and {@link BlockMasterClient} which can
  * lead to inefficient use of client machine resources.
- *
+ * <p>
  * A {@link FileSystemContext} should be closed once the user is done performing operations with
  * Alluxio and no more connections need to be made. Once a {@link FileSystemContext} is closed it
  * is preferred that the user of the class create a new instance with
  * {@link FileSystemContext#create} to create a new context, rather than reinitializing using the
  * {@link FileSystemContext#init} method.
- *
+ * <p>
  * NOTE: Each context maintains a pool of file system master clients that is already thread-safe.
  * Synchronizing {@link FileSystemContext} methods could lead to deadlock: thread A attempts to
  * acquire a client when there are no clients left in the pool and blocks holding a lock on the
@@ -174,7 +174,7 @@ public class FileSystemContext implements Closeable {
    */
   private volatile FileSystemContextReinitializer mReinitializer;
 
-  /** Whether to do URI scheme validation for file systems using this context.  */
+  /** Whether to do URI scheme validation for file systems using this context. */
   private boolean mUriValidationEnabled = true;
 
   /** Cached map for workers. */
@@ -194,7 +194,8 @@ public class FileSystemContext implements Closeable {
     /**
      * Default constructor.
      */
-    public FileSystemContextFactory() {}
+    public FileSystemContextFactory() {
+    }
 
     /**
      * Creates a {@link FileSystemContext} with an empty subject
@@ -202,7 +203,7 @@ public class FileSystemContext implements Closeable {
      *
      * @param conf Alluxio configuration
      * @param masterAddresses the master addresses to use, this addresses will be
-     *                      used across reinitialization
+     *     used across reinitialization
      * @return an instance of file system context with no subject associated
      */
     public FileSystemContext create(
@@ -243,7 +244,7 @@ public class FileSystemContext implements Closeable {
 
     /**
      * @param clientContext the {@link alluxio.ClientContext} containing the subject
-     *  and configuration
+     *     and configuration
      * @return the {@link alluxio.client.file.FileSystemContext}
      */
     public FileSystemContext create(ClientContext clientContext) {
@@ -277,8 +278,8 @@ public class FileSystemContext implements Closeable {
      *
      * @param subject the parent subject
      * @param masterInquireClient the client to use for determining the master; note that if the
-     *        context is reset, this client will be replaced with a new masterInquireClient based on
-     *        the original configuration.
+     *     context is reset, this client will be replaced with a new masterInquireClient based on
+     *     the original configuration.
      * @param alluxioConf Alluxio configuration
      * @return the context
      */
@@ -294,7 +295,7 @@ public class FileSystemContext implements Closeable {
    *
    * @param conf Alluxio configuration
    * @param masterAddresses the master addresses to use, this addresses will be
-   *                      used across reinitialization
+   *     used across reinitialization
    * @return an instance of file system context with no subject associated
    */
   public static FileSystemContext create(
@@ -335,7 +336,8 @@ public class FileSystemContext implements Closeable {
   }
 
   /**
-   * @param clientContext the {@link alluxio.ClientContext} containing the subject and configuration
+   * @param clientContext the {@link alluxio.ClientContext} containing the subject and
+   *     configuration
    * @return the {@link alluxio.client.file.FileSystemContext}
    */
   public static FileSystemContext create(ClientContext clientContext) {
@@ -380,8 +382,8 @@ public class FileSystemContext implements Closeable {
    *
    * @param subject the parent subject
    * @param masterInquireClient the client to use for determining the master; note that if the
-   *        context is reset, this client will be replaced with a new masterInquireClient based on
-   *        the original configuration.
+   *     context is reset, this client will be replaced with a new masterInquireClient based on
+   *     the original configuration.
    * @param alluxioConf Alluxio configuration
    * @return the context
    */
@@ -401,8 +403,8 @@ public class FileSystemContext implements Closeable {
    * @param blockWorker block worker
    */
   protected FileSystemContext(AlluxioConfiguration conf, @Nullable BlockWorker blockWorker,
-                            @Nullable List<InetSocketAddress> masterAddresses) {
-    mId = IdUtils.createFileSystemContextId();
+      @Nullable List<InetSocketAddress> masterAddresses) {
+    mId = IdUtils.createOrGetAppIdFromConfig(conf);
     mBlockWorker = blockWorker;
     mMasterAddresses = masterAddresses;
     mWorkerRefreshPolicy =
@@ -507,11 +509,11 @@ public class FileSystemContext implements Closeable {
 
   /**
    * Acquires the resource to block reinitialization.
-   *
+   * <p>
    * If reinitialization is happening, this method will block until reinitialization succeeds or
    * fails, if it fails, a RuntimeException will be thrown explaining the
    * reinitialization's failure and automatically closes the resource.
-   *
+   * <p>
    * RuntimeException is thrown because this method is called before requiring resources from the
    * context, if reinitialization fails, the resources might be half closed, to prevent resource
    * leaks, we thrown RuntimeException here to force callers to fail since there is no way to
@@ -532,11 +534,11 @@ public class FileSystemContext implements Closeable {
 
   /**
    * Closes the context, updates configuration from meta master, then re-initializes the context.
-   *
+   * <p>
    * The reinitializer is not closed, which means the heartbeat thread inside it is not stopped.
    * The reinitializer will be reset with the updated context if reinitialization succeeds,
    * otherwise, the reinitializer is not reset.
-   *
+   * <p>
    * Blocks until there is no active RPCs.
    *
    * @param updateClusterConf whether cluster level configuration should be updated
@@ -568,7 +570,7 @@ public class FileSystemContext implements Closeable {
           ? MasterInquireClient.Factory.createForAddresses(mMasterAddresses,
           getClusterConf(), getClientContext().getUserState())
           : MasterInquireClient.Factory.create(getClusterConf(),
-          getClientContext().getUserState()));
+              getClientContext().getUserState()));
       LOG.debug("FileSystemContext re-initialized");
       mReinitializer.onSuccess();
     }
@@ -691,25 +693,25 @@ public class FileSystemContext implements Closeable {
   /**
    * Acquire a client resource from {@link #mBlockMasterClientPool} or
    * {@link #mFileSystemMasterClientPool}.
-   *
+   * <p>
    * Because it's possible for a context re-initialization to occur while the resource is
    * acquired this method uses an inline class which will save the reference to the pool used to
    * acquire the resource.
-   *
+   * <p>
    * There are three different cases to which may occur during the release of the resource
-   *
+   * <p>
    * 1. release while the context is re-initializing
-   *    - The original {@link #mBlockMasterClientPool} or {@link #mFileSystemMasterClientPool}
-   *    may be null, closed, or overwritten with a difference pool. The inner class here saves
-   *    the original pool from being GCed because it holds a reference to the pool that was used
-   *    to acquire the client initially. Releasing into the closed pool is harmless.
+   * - The original {@link #mBlockMasterClientPool} or {@link #mFileSystemMasterClientPool}
+   * may be null, closed, or overwritten with a difference pool. The inner class here saves
+   * the original pool from being GCed because it holds a reference to the pool that was used
+   * to acquire the client initially. Releasing into the closed pool is harmless.
    * 2. release after the context has been re-initialized
-   *    - Similar to the above scenario the original {@link #mBlockMasterClientPool} or
-   *    {@link #mFileSystemMasterClientPool} are going to be using an entirely new pool. Since
-   *    this method will save the original pool reference, this method would result in releasing
-   *    into a closed pool which is harmless
+   * - Similar to the above scenario the original {@link #mBlockMasterClientPool} or
+   * {@link #mFileSystemMasterClientPool} are going to be using an entirely new pool. Since
+   * this method will save the original pool reference, this method would result in releasing
+   * into a closed pool which is harmless
    * 3. release before any re-initialization
-   *    - This is the normal case. There are no special considerations
+   * - This is the normal case. There are no special considerations
    *
    * @param pool the pool to acquire from and release to
    * @param <T> the resource type
@@ -752,7 +754,7 @@ public class FileSystemContext implements Closeable {
         .getRpcPortSocketAddress(workerNetAddress, context.getClusterConf());
     GrpcServerAddress serverAddress = GrpcServerAddress.create(workerNetAddress.getHost(), address);
     final ClientPoolKey key = new ClientPoolKey(address, AuthenticationUtils
-            .getImpersonationUser(userState.getSubject(), context.getClusterConf()));
+        .getImpersonationUser(userState.getSubject(), context.getClusterConf()));
     final ConcurrentHashMap<ClientPoolKey, BlockWorkerClientPool> poolMap =
         mBlockWorkerClientPoolMap;
     BlockWorkerClientPool pool = poolMap.computeIfAbsent(
@@ -894,12 +896,12 @@ public class FileSystemContext implements Closeable {
 
   /**
    * @return if there are any local workers, the returned list will ONLY contain the local workers,
-   *         otherwise a list of all remote workers will be returned
+   *     otherwise a list of all remote workers will be returned
    */
   private List<WorkerNetAddress> getWorkerAddresses() throws IOException {
     List<WorkerInfo> infos;
     try (CloseableResource<BlockMasterClient> masterClientResource =
-        acquireBlockMasterClientResource()) {
+             acquireBlockMasterClientResource()) {
       infos = masterClientResource.get().getWorkerInfoList();
     }
     if (infos.isEmpty()) {
