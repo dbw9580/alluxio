@@ -18,11 +18,12 @@ import java.util.Optional;
 
 /**
  * Immutable view of cache usage stats.
+ >
  */
 public interface CacheUsageView {
   /**
    * Bytes currently used by the cache.
-   * This includes both evictable and inevitable pages.
+   * This includes both evictable and inevitable pages (e.g. pinned pages and reserved space).
    *
    * @return number of bytes being used
    */

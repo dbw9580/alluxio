@@ -306,9 +306,18 @@ public class LocalCacheManager implements CacheManager {
         }
       }
     }
+    Optional<CacheUsage> dirUsageOpt = pageStoreDir.getUsage();
+    CacheUsage dirUsage = dirUsageOpt.orElseThrow(
+        () -> new IllegalStateException(
+            // this should be unreachable
+            String.format("PageStoreDir %s does not support reporting cache usage while it should",
+                pageStoreDir.getClass())));
+    long bytesUsed = dirUsage.used();
+    long capacity = dirUsage.capacity();
+    long available = dirUsage.available();
     // Check cache space usage
     if (forcedToEvict
-        || pageStoreDir.getCachedBytes() + pageSize > pageStoreDir.getCapacityBytes()) {
+        || bytesUsed + pageSize > capacity && available > pageSize) {
       return CacheScope.GLOBAL;
     }
     return null;
@@ -570,6 +579,18 @@ public class LocalCacheManager implements CacheManager {
       Metrics.CLEANUP_PUT_ERRORS.inc();
       LOG.error("Failed to undo page add {}", pageId, e);
     }
+  }
+
+  @Override
+  public Reservation reserve(String fileId, long initialReservedCapacity,
+      CacheContext cacheContext) {
+    try (LockResource r2 = new LockResource(mPageMetaStore.getLock().writeLock())) {
+      PageStoreDir targetDir = mPageMetaStore.allocate(fileId, initialReservedCapacity);
+      if (targetDir.reserve(initialReservedCapacity)) {
+
+      }
+    }
+    return null;
   }
 
   @Override

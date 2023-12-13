@@ -224,6 +224,16 @@ public interface CacheManager extends AutoCloseable, CacheStatus {
   boolean put(PageId pageId, ByteBuffer page, CacheContext cacheContext);
 
   /**
+   * Reserves cache space ahead of time for putting large chunks of data.
+   *
+   * @param fileId                  the file for which space is reserved
+   * @param initialReservedCapacity capacity to reserve at the beginning, 0 to not pre-reserve
+   *                                any space
+   * @return a reservation handle for this file
+   */
+  Reservation reserve(String fileId, long initialReservedCapacity, CacheContext cacheContext);
+
+  /**
    * Reads the entire page if the queried page is found in the cache, stores the result in buffer.
    *
    * @param pageId page identifier

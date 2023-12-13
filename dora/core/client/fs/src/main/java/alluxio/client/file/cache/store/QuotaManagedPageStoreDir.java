@@ -45,13 +45,22 @@ abstract class QuotaManagedPageStoreDir implements PageStoreDir {
 
   private final Path mRootPath;
   private final long mCapacityBytes;
-  private final AtomicLong mBytesUsed = new AtomicLong(0);
+  /**
+   * Absolute minimum number of bytes that are reserved. This reserved space is not used in any way.
+   * capacity - bytes cached - bytes reserved >= min reserved must always be true.
+   **/
+  private final long mMinReservedBytes;
+  private final AtomicLong mBytesCached = new AtomicLong(0);
+  private final AtomicLong mBytesReserved;
 
   private final CacheEvictor mEvictor;
 
-  QuotaManagedPageStoreDir(Path rootPath, long capacityBytes, CacheEvictor evictor) {
+  QuotaManagedPageStoreDir(Path rootPath, long capacityBytes, long minReservedBytes,
+      CacheEvictor evictor) {
     mRootPath = rootPath;
     mCapacityBytes = capacityBytes;
+    mMinReservedBytes = minReservedBytes;
+    mBytesReserved = new AtomicLong(minReservedBytes);
     mEvictor = evictor;
   }
 
@@ -67,7 +76,7 @@ abstract class QuotaManagedPageStoreDir implements PageStoreDir {
 
   @Override
   public long getCachedBytes() {
-    return mBytesUsed.get();
+    return mBytesCached.get();
   }
 
   @Override
@@ -76,7 +85,7 @@ abstract class QuotaManagedPageStoreDir implements PageStoreDir {
     try (LockResource lock = new LockResource(mFileIdSetLock.writeLock())) {
       mFileIdSet.add(pageInfo.getPageId().getFileId());
     }
-    mBytesUsed.addAndGet(pageInfo.getPageSize());
+    mBytesCached.addAndGet(pageInfo.getPageSize());
   }
 
   @Override
@@ -86,13 +95,13 @@ abstract class QuotaManagedPageStoreDir implements PageStoreDir {
     try (LockResource lock = new LockResource(mTempFileIdSetLock.readLock())) {
       mTempFileIdSet.add(pageInfo.getPageId().getFileId());
     }
-    mBytesUsed.addAndGet(pageInfo.getPageSize());
+    mBytesCached.addAndGet(pageInfo.getPageSize());
   }
 
   @Override
   public long deletePage(PageInfo pageInfo) {
     mEvictor.updateOnDelete(pageInfo.getPageId());
-    return mBytesUsed.addAndGet(-pageInfo.getPageSize());
+    return mBytesCached.addAndGet(-pageInfo.getPageSize());
   }
 
   @Override
@@ -111,7 +120,7 @@ abstract class QuotaManagedPageStoreDir implements PageStoreDir {
         }
       }
     }
-    mBytesUsed.addAndGet(-pageInfo.getPageSize());
+    mBytesCached.addAndGet(-pageInfo.getPageSize());
   }
 
   @Override
@@ -125,17 +134,17 @@ abstract class QuotaManagedPageStoreDir implements PageStoreDir {
   public boolean reserve(long bytes) {
     long previousBytesUsed;
     do {
-      previousBytesUsed = mBytesUsed.get();
+      previousBytesUsed = mBytesCached.get();
       if (previousBytesUsed + bytes > mCapacityBytes) {
         return false;
       }
-    } while (!mBytesUsed.compareAndSet(previousBytesUsed, previousBytesUsed + bytes));
+    } while (!mBytesCached.compareAndSet(previousBytesUsed, previousBytesUsed + bytes));
     return true;
   }
 
   @Override
   public long release(long bytes) {
-    return mBytesUsed.addAndGet(-bytes);
+    return mBytesCached.addAndGet(-bytes);
   }
 
   @Override
@@ -161,7 +170,7 @@ abstract class QuotaManagedPageStoreDir implements PageStoreDir {
   public void close() {
     try {
       getPageStore().close();
-      mBytesUsed.set(0);
+      mBytesCached.set(0);
     } catch (Exception e) {
       throw new RuntimeException("Close page store failed for dir " + getRootPath().toString(), e);
     }
@@ -203,18 +212,17 @@ abstract class QuotaManagedPageStoreDir implements PageStoreDir {
   class Usage implements CacheUsage {
     @Override
     public long used() {
-      return getCachedBytes();
+      return mBytesCached.get() + mBytesReserved.get();
     }
 
     @Override
     public long available() {
-      // TODO(bowen): take reserved bytes into account
-      return getCapacityBytes() - getCachedBytes();
+      return mCapacityBytes - mBytesReserved.get();
     }
 
     @Override
     public long capacity() {
-      return getCapacityBytes();
+      return mCapacityBytes;
     }
 
     /**

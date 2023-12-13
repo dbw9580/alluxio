@@ -30,10 +30,18 @@ import java.util.Optional;
  * <b>Stats</b>
  * The following cache usage stats are reported for the granularity of the object:
  * <ul>
- *   <li><b>Used</b>: size of pages currently cached</li>
+ *   <li><b>Used</b>: size of pages currently cached and reserved space</li>
  *   <li><b>Available</b>: size of free space, plus size of evictable pages</li>
  *   <li><b>Capacity</b>: total capacity</li>
  * </ul>
+ * <p>
+ * The stats are defined as below:
+ * <pre>
+ * |<-- reserved -->|<-- inevitable -->|<-- evictable -->|<-- free -->|
+ * |<------------------ used --------------------------->|
+ *                                     |<--------- available -------->|
+ * |<------------------------- capacity ----------------------------->|
+ * </pre
  * <b>Snapshot</b>
  * Cache usage object does not offer atomic view of their stats. Two subsequent calls to get the
  * same stats may return different results, as the underlying cached contents may have changed
